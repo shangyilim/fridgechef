@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { UtensilsCrossed, ChefHat, Video, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator'; // Import Separator
 
 // Define the form schema shared between recipe suggestion and video identification input
 const formSchema = z.object({
@@ -137,7 +138,7 @@ export default function Home() {
           form.setValue('ingredients', result.identifiedIngredients);
           toast({
             title: 'Ingredients Identified!',
-            description: 'Check the list and add anything missed.',
+            description: 'Check the list and add anything missed, then click Suggest Recipes.',
           });
         } else {
            setVideoError('Could not identify ingredients from the video. Please enter them manually.');
@@ -180,23 +181,17 @@ export default function Home() {
           What's Cooking?
         </h2>
         <p className="text-muted-foreground">
-          Enter your ingredients manually, or upload a short video of your fridge!
+          Scan your fridge with a video, or enter your ingredients manually below!
         </p>
       </div>
 
       {/* Ingredient Input Section */}
       <Card className="w-full shadow-lg border">
-         <CardContent className="p-6 space-y-4">
-            <IngredientForm
-                form={form} // Pass the form object down
-                onSubmit={handleSuggestRecipes}
-                isLoading={isSuggestingLoading || isVideoProcessing} // Disable form while either process is running
-             />
-
-             {/* Video Upload Option */}
-             <div className="text-center text-sm text-muted-foreground">OR</div>
+         <CardContent className="p-6 space-y-6"> {/* Increased spacing */}
+            {/* Video Upload Option */}
              <div className="flex flex-col items-center space-y-2">
-               <Label htmlFor="video-upload" className="sr-only">Upload Fridge Video</Label>
+               <Label htmlFor="video-upload" className="text-lg font-medium">Scan Your Fridge</Label>
+               <p className="text-xs text-muted-foreground pt-1 pb-2">Upload a short video (max ~10-15s) showing your ingredients.</p>
                <Input
                  id="video-upload"
                  type="file"
@@ -231,10 +226,22 @@ export default function Home() {
                    <AlertDescription className="text-xs">{videoError}</AlertDescription>
                  </Alert>
                )}
-               <p className="text-xs text-muted-foreground pt-1">Upload a short video (max ~10-15s) showing your ingredients.</p>
              </div>
 
-             {/* Suggest Recipes Button (now part of IngredientForm) */}
+             {/* Separator */}
+             <div className="flex items-center justify-center">
+                <Separator className="flex-1" />
+                 <span className="px-4 text-sm text-muted-foreground">OR</span>
+                 <Separator className="flex-1" />
+             </div>
+
+             {/* Manual Ingredient Form */}
+            <IngredientForm
+                form={form} // Pass the form object down
+                onSubmit={handleSuggestRecipes}
+                isLoading={isSuggestingLoading || isVideoProcessing} // Disable form while either process is running
+             />
+
          </CardContent>
       </Card>
 
@@ -258,7 +265,7 @@ export default function Home() {
 
       {!isSuggestingLoading && !suggestionError && !isVideoProcessing && recipes === null && (
         <div className="text-center text-muted-foreground pt-8">
-          Enter some ingredients or upload a video to get started!
+          Scan your fridge or enter some ingredients to get started!
         </div>
       )}
 

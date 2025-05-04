@@ -46,17 +46,17 @@ export function IngredientForm({ form, onSubmit, isLoading }: IngredientFormProp
           name="ingredients"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-lg">Your Ingredients</FormLabel>
+              <FormLabel className="text-lg">Your Ingredients (Manual Entry)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="e.g., chicken breast, broccoli, soy sauce, garlic, rice... (or upload a video below)"
+                  placeholder="e.g., chicken breast, broccoli, soy sauce, garlic, rice..."
                   className="resize-none min-h-[100px] text-base"
                   {...field}
                   disabled={isLoading} // Use the unified isLoading prop
                 />
               </FormControl>
               <FormDescription>
-                Enter ingredients separated by commas, or use the video upload.
+                Enter ingredients separated by commas. Check above if you prefer to upload a video instead.
               </FormDescription>
               <FormMessage />
             </FormItem>
