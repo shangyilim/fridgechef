@@ -10,5 +10,5 @@ export const ai = genkit({
     }),
   ],
   // You might want to default to a specific model, but ensure the API key is set.
-  // model: 'googleai/gemini-1.5-flash', // Example: defaulting to a specific model
+  model: 'googleai/gemini-2.0-flash', // Example: defaulting to a specific model
 });

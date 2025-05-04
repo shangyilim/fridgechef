@@ -57,7 +57,7 @@ Identified Ingredients (comma-separated):
 `,
   // Specify the model capable of video input (Gemini 1.5 Pro or Flash)
   // Using Flash for potentially faster and cheaper processing, but Pro might be more accurate.
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.0-flash',
   config: {
     // Adjust temperature for more deterministic output if needed
     temperature: 0.2,
