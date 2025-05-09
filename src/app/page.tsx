@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -16,13 +15,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { UtensilsCrossed, ChefHat, Video, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator'; // Import Separator
+import { Separator } from '@/components/ui/separator';
 
-// Define the form schema shared between recipe suggestion and video identification input
 const formSchema = z.object({
   ingredients: z
     .string()
-    .min(1, { // Allow empty initially, but maybe require after video scan fails? Or let suggestion handle empty. Let's keep it simple for now.
+    .min(1, {
       message: 'Please list at least one ingredient.',
     })
     .describe('A comma-separated list of ingredients available in the fridge.'),
@@ -37,11 +35,11 @@ export default function Home() {
 
   const [isVideoProcessing, setIsVideoProcessing] = React.useState(false);
   const [videoError, setVideoError] = React.useState<string | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = React.useState<string | null>(null);
   const videoInputRef = React.useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
 
-  // Lift form management to the parent component
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,12 +47,21 @@ export default function Home() {
     },
   });
 
+  React.useEffect(() => {
+    // Cleanup object URL when component unmounts or videoPreviewUrl changes
+    const currentUrl = videoPreviewUrl;
+    return () => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+    };
+  }, [videoPreviewUrl]);
+
   const handleSuggestRecipes = async (data: FormData) => {
     setIsSuggestingLoading(true);
     setSuggestionError(null);
-    setRecipes(null); // Clear previous recipes
+    setRecipes(null);
 
-    // Manually trigger validation before submitting
     const isValid = await form.trigger();
     if (!isValid) {
       setIsSuggestingLoading(false);
@@ -76,7 +83,6 @@ export default function Home() {
        });
        return;
     }
-
 
     try {
       const result = await suggestRecipes(data);
@@ -114,10 +120,13 @@ export default function Home() {
       return;
     }
 
-    // Reset previous errors/state
+    // Create and set object URL for preview.
+    // The useEffect will handle revoking the previous URL if any.
+    const objectUrl = URL.createObjectURL(file);
+    setVideoPreviewUrl(objectUrl);
+
     setVideoError(null);
     setIsVideoProcessing(true);
-    // Optionally clear previous recipes and ingredients? Let's clear ingredients.
     form.setValue('ingredients', '');
     setRecipes(null);
 
@@ -129,6 +138,7 @@ export default function Home() {
            setVideoError("Could not read the video file.");
            toast({ title: "Error Reading Video", description: "The video file could not be processed.", variant: "destructive"});
            setIsVideoProcessing(false);
+           setVideoPreviewUrl(null); // Clear preview on error
            return;
        }
 
@@ -159,7 +169,6 @@ export default function Home() {
         });
       } finally {
         setIsVideoProcessing(false);
-         // Reset file input value so the same file can be uploaded again if needed
          if (videoInputRef.current) {
            videoInputRef.current.value = '';
          }
@@ -170,6 +179,10 @@ export default function Home() {
        setVideoError("Failed to read video file.");
        toast({ title: "File Reading Error", description: "There was an issue reading the video.", variant: "destructive"});
        setIsVideoProcessing(false);
+       setVideoPreviewUrl(null); // Clear preview on file reading error
+       if (videoInputRef.current) {
+           videoInputRef.current.value = '';
+       }
     };
   };
 
@@ -185,68 +198,79 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Ingredient Input Section */}
       <Card className="w-full shadow-lg border">
-         <CardContent className="p-6 space-y-6"> {/* Increased spacing */}
-            {/* Video Upload Option */}
-             <div className="flex flex-col items-center space-y-2">
+         <CardContent className="p-6 space-y-6">
+             <div className="flex flex-col items-center space-y-4">
                <Label htmlFor="video-upload" className="text-lg font-medium">Scan Your Fridge</Label>
-               <p className="text-xs text-muted-foreground pt-1 pb-2">Upload a short video (max ~10-15s) showing your ingredients.</p>
-               <Input
-                 id="video-upload"
-                 type="file"
-                 accept="video/*"
-                 onChange={handleVideoUpload}
-                 ref={videoInputRef}
-                 className="hidden" // Hide default input
-                 disabled={isVideoProcessing || isSuggestingLoading}
-               />
-               <Button
-                 variant="outline"
-                 onClick={() => videoInputRef.current?.click()} // Trigger hidden input
-                 disabled={isVideoProcessing || isSuggestingLoading}
-                 className="w-full"
-               >
-                 {isVideoProcessing ? (
-                   <>
-                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                     Scanning Video...
-                   </>
-                 ) : (
-                   <>
-                     <Video className="mr-2 h-4 w-4" />
-                     Upload Fridge Video Scan
-                   </>
-                 )}
-               </Button>
-               {videoError && (
-                 <Alert variant="destructive" className="w-full mt-2 text-xs">
-                    <UtensilsCrossed className="h-3 w-3" />
-                   <AlertTitle className="text-xs font-semibold">Video Error</AlertTitle>
-                   <AlertDescription className="text-xs">{videoError}</AlertDescription>
-                 </Alert>
+               <p className="text-xs text-muted-foreground text-center">
+                 Upload a short video (max ~10-15s) showing your ingredients.
+               </p>
+
+               {videoPreviewUrl && (
+                 <div className="w-full mt-2 mb-2">
+                   <video
+                     id="video-preview-player"
+                     src={videoPreviewUrl}
+                     controls
+                     className="w-full aspect-video rounded-md shadow-md border bg-muted"
+                     aria-label="Uploaded video preview"
+                     preload="metadata"
+                   />
+                 </div>
                )}
+
+               <div className="w-full space-y-2">
+                 <Input
+                   id="video-upload"
+                   type="file"
+                   accept="video/*"
+                   onChange={handleVideoUpload}
+                   ref={videoInputRef}
+                   className="hidden"
+                   disabled={isVideoProcessing || isSuggestingLoading}
+                 />
+                 <Button
+                   variant="outline"
+                   onClick={() => videoInputRef.current?.click()}
+                   disabled={isVideoProcessing || isSuggestingLoading}
+                   className="w-full"
+                 >
+                   {isVideoProcessing ? (
+                     <>
+                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                       Scanning Video...
+                     </>
+                   ) : (
+                     <>
+                       <Video className="mr-2 h-4 w-4" />
+                       {videoPreviewUrl ? 'Change Video' : 'Upload Fridge Video Scan'}
+                     </>
+                   )}
+                 </Button>
+                 {videoError && (
+                   <Alert variant="destructive" className="w-full mt-2 text-xs">
+                      <UtensilsCrossed className="h-3 w-3" />
+                     <AlertTitle className="text-xs font-semibold">Video Error</AlertTitle>
+                     <AlertDescription className="text-xs">{videoError}</AlertDescription>
+                   </Alert>
+                 )}
+               </div>
              </div>
 
-             {/* Separator */}
              <div className="flex items-center justify-center">
                 <Separator className="flex-1" />
                  <span className="px-4 text-sm text-muted-foreground">OR</span>
                  <Separator className="flex-1" />
              </div>
 
-             {/* Manual Ingredient Form */}
             <IngredientForm
-                form={form} // Pass the form object down
+                form={form}
                 onSubmit={handleSuggestRecipes}
-                isLoading={isSuggestingLoading || isVideoProcessing} // Disable form while either process is running
+                isLoading={isSuggestingLoading || isVideoProcessing}
              />
-
          </CardContent>
       </Card>
 
-
-      {/* Error for Suggestion */}
       {suggestionError && (
         <Alert variant="destructive" className="w-full">
            <UtensilsCrossed className="h-4 w-4" />
@@ -255,7 +279,6 @@ export default function Home() {
         </Alert>
       )}
 
-      {/* Loading indicator for suggestions */}
       {isSuggestingLoading && (
          <div className="flex items-center justify-center text-muted-foreground py-4">
            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -269,7 +292,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Recipe Results */}
       {recipes && recipes.length > 0 && (
         <div className="w-full space-y-6 pt-4">
           <h3 className="text-2xl font-semibold text-center text-foreground">Recipe Suggestions</h3>
@@ -280,4 +302,3 @@ export default function Home() {
       )}
     </div>
   );
-}
